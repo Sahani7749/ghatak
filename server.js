@@ -149,7 +149,6 @@ admin.initializeApp({
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", // Windows path
     args: ["--no-sandbox", "--disable-setuid-sandbox"]
   });
   const page = await browser.newPage();
@@ -157,7 +156,6 @@ admin.initializeApp({
   console.log(await page.title());
   await browser.close();
 })();
-
 
 
 
