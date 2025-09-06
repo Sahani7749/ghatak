@@ -119,7 +119,20 @@ const STATIC_BEARER = "bNzxay2Pvqh831iEcDviOfdv8hv4H2BY";
 
 
 
-const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+
+const serviceAccount = {
+  "type": "service_account",
+  "project_id": "surya-key",
+  "private_key_id": "21d1a63ac40139365dfad6abf6537a4b3f9c0b7e",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDCBSMXQSV8x2pt\nXPW/uSMS41vzBWUrzScYgQTHprgORTpNpTNleT6seIBHm3ChW0HLI7HIZPUPQEUC\ny68ipfTIXsOteVZKoEHmOgXr43zciKgtaYfTnp6s073sXG3rnVIOkvvqTGhYodpa\nj/5n0CAzLX5uvBnssGVSFyI+JLRvEUofvr7jqzc0yUwhkc5YN9Edyac4jyjsUipQ\nkdljQFiRS4RatsfOAG31tQxfDHCaZ0x8MvBdQ9GLQsF2VKys6IJ0JRoyOgbxpYGo\nEV2v0lBc/ylN3CtBmMFi4WBdV9uqtVoR8F/tgU8+WII1zwpFpXslHZSu6t5s6O1c\n6vqCGMfHAgMBAAECggEAAMX5lGMmMv3nKJWL8FOVllDokeqhekVUER7Ta0YVLfMo\n6Y4YPOfceqWCiPEzHPNQDpnIJ70a1WXzZ5Q50NDC+HV8rtlUaGOEsYDJCXqp3xQM\nz47cdWclAhnJ9eXHFX8A7Cvy6/59TjUigKxaCSHlIL1Q55WlBUDUhMeUYbHrF4eR\nVgMjx0+d2FIjCKGF5QcX//pqaYh+loj3PX8WN2uvJiXuT9ClEJgfZIypkOnTrEcZ\njdLLUzPjT9UeMwOWYVKUiGIYXapdB8DyvuTjQ2ySPr3JTOSReUfDIZdKrmH7qVkI\nOFa4UATKxQyu54WYpw13iImcUzWdfQCdCHmL53m4aQKBgQDgVS1bD4qRTLjDzUd6\nTsqDwn2z6ukdoZ4QpRAUSwTXpw1vRtCFO7lWJ8yWAaXtNwedUuDuaLn7kxpQ/XU0\n+CnZ7OpI4K7INQg2nYQklff+eXX1JW3POy5MdacGPu2tyHYn2e8t2iUqyiKssPWj\ni1kiNulhogJyO/01ZJzCv4VxgwKBgQDdaIlRvyj9FGaI4iwx9YLxtbQaHkOZCZbP\nt2HR4campXRnNj4IvAQ/U3Y7i2cHCtnqJWK9d27fEDypZq341CTUclxiRIZRBj65\nEMp7i3pirZrNkkq4S1RiZVrAk5UluDBgBkz/euumFEUfsJFc8e7H/mVxgwDIk+kt\n64q3P59RbQKBgQC7SSFWlsD+0Winv2ffSox0OBmt7X61iEpoZwXni0H9sK/cqOhJ\nczUmIpAA5Ftckca/p4O2RqSOzZ744sHJeS2njM2EDmCdMPksb5D04mdqgojiI19r\n1WKv3sGUy1Cu9179okq2oxrIgH02Y36QDTRbBjENm64jJMYen2Loi/CidQKBgB6M\nF7YRm8QfFm54VgSmjORwX2LjHgx1SDtsX7CnZ9MCLOc4kqJ93lAmYb+hYhuUobAu\nbEsbuU5JXTU6F3KnQlWVWa2tKqLvK6Q47tbQzZfjv+Hw9yIqMoBI35aGRiOoH/R/\nqgvtl6mYTlkq8UNTldA+Bxz8KBWEYr2VK9RQkNiZAoGAJadAo9klsM9MWfkxxK6R\nhr99n/OlojfzX5yXcIaJ+MBWfJQWih/7x5kcAZc65Di8Mt9iTfO5fOfV7iUc/vwE\nBKEfbJKmv5OnrMgxdpWSCToOeZ1qGeLnk3xHi7Bp9MVzjwpBISB6Lx9JFXn+IKfE\n4mrCyV2kaXc2q3/g1nvsDsE=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@surya-key.iam.gserviceaccount.com",
+  "client_id": "111970893328857736547",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40surya-key.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+};
 
 
 
