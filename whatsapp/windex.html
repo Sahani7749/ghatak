@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WhatsApp Control Panel</title>
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .shadow-soft{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    .scrollbar-thin::-webkit-scrollbar{height:6px;width:6px}
+    .scrollbar-thin::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-800">
+  <div class="max-w-4xl mx-auto p-4 sm:p-8">
+    <header class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl sm:text-3xl font-bold">📱 WhatsApp Control Panel</h1>
+      <span id="statusBadge" class="px-3 py-1 text-xs font-semibold rounded-full bg-slate-300 text-slate-700">Checking…</span>
+    </header>
+
+    <!-- Config Card -->
+    <section class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="bg-white shadow-soft rounded-2xl p-4 sm:p-6">
+        <h2 class="text-lg font-semibold mb-3">Backend Settings</h2>
+        <label class="block text-sm mb-1" for="apiBase">API Base URL</label>
+        <input id="apiBase" type="text" class="w-full border rounded-lg px-3 py-2" placeholder="http://localhost:5000/whatsapp" />
+        <div class="flex items-center gap-2 mt-3">
+          <button id="saveCfg" class="px-4 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90">Save</button>
+          <button id="testConn" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">Test connection</button>
+        </div>
+        <p id="cfgMsg" class="text-sm mt-2"></p>
+      </div>
+
+      <div class="bg-white shadow-soft rounded-2xl p-4 sm:p-6">
+        <h2 class="text-lg font-semibold mb-3">Login (Scan QR)</h2>
+        <div id="qrWrap" class="flex items-center justify-center min-h-[220px] bg-slate-50 rounded-xl border border-dashed"></div>
+        <p class="text-xs text-slate-500 mt-2">If QR is empty, client may already be logged in or not initialized yet. This section refreshes every 3 seconds.</p>
+      </div>
+    </section>
+
+    <!-- Actions -->
+    <section class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="bg-white shadow-soft rounded-2xl p-4 sm:p-6">
+        <h2 class="text-lg font-semibold mb-3">Send Message</h2>
+        <label class="block text-sm mb-1" for="waNumber">Phone Number (e.g. 9198XXXXXXXX)</label>
+        <input id="waNumber" type="tel" class="w-full border rounded-lg px-3 py-2 mb-3" placeholder="CountryCode + Number" />
+        <label class="block text-sm mb-1" for="waText">Message</label>
+        <textarea id="waText" rows="4" class="w-full border rounded-lg px-3 py-2 mb-3" placeholder="Type your message…"></textarea>
+        <div class="flex items-center gap-2">
+          <button id="sendBtn" class="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700">Send</button>
+          <button id="clearBtn" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300">Clear</button>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">Tip: You can also enter <code>9198XXXXXXXX@c.us</code> directly.</p>
+      </div>
+
+      <div class="bg-white shadow-soft rounded-2xl p-4 sm:p-6">
+        <h2 class="text-lg font-semibold mb-3">Quick Templates</h2>
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <button class="tpl px-3 py-2 bg-slate-200 rounded-lg">Order Confirmed ✅</button>
+          <button class="tpl px-3 py-2 bg-slate-200 rounded-lg">Payment Received 💳</button>
+          <button class="tpl px-3 py-2 bg-slate-200 rounded-lg">Out for Delivery 🚚</button>
+          <button class="tpl px-3 py-2 bg-slate-200 rounded-lg">Thanks for Purchase 🙏</button>
+        </div>
+        <label class="block text-sm mb-1" for="customTpl">Add Custom Template</label>
+        <div class="flex gap-2">
+          <input id="customTpl" class="flex-1 border rounded-lg px-3 py-2" placeholder="Your template text" />
+          <button id="addTpl" class="px-3 py-2 rounded-lg bg-slate-900 text-white">Add</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logs -->
+    <section class="mt-4 bg-white shadow-soft rounded-2xl p-4 sm:p-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold">Logs</h2>
+        <div class="flex gap-2">
+          <button id="copyLogs" class="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-sm">Copy</button>
+          <button id="clearLogs" class="px-3 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 text-sm">Clear</button>
+        </div>
+      </div>
+      <div id="logBox" class="mt-3 bg-slate-50 border rounded-xl p-3 h-56 overflow-auto text-sm whitespace-pre-wrap scrollbar-thin"></div>
+      <p class="text-xs text-slate-500 mt-2">Logs are stored locally in your browser.</p>
+    </section>
+
+    <footer class="mt-6 text-center text-xs text-slate-500">
+      Unofficial client built for <code>whatsapp-web.js</code> backend. Use responsibly.
+    </footer>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed left-1/2 -translate-x-1/2 bottom-6 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm shadow-lg opacity-0 pointer-events-none transition"></div>
+
+  <script>
+    const $ = (s)=>document.querySelector(s);
+    const $$ = (s)=>document.querySelectorAll(s);
+
+    // Persistent config & logs
+    const STORE_KEY = 'wa_panel_cfg_v1';
+    const LOG_KEY = 'wa_panel_logs_v1';
+
+    const state = {
+      apiBase: 'http://localhost:5000/user',
+        authToken: "bNzxay2Pvqh831iEcDviOfdv8hv4H2BY",   // 🔑 यहाँ अपना token डालें
+      ready: false,
+      qr: null,
+      polling: null,
+      logs: []
+    };
+
+    function saveCfg(){
+      localStorage.setItem(STORE_KEY, JSON.stringify({ apiBase: state.apiBase }));
+    }
+    function loadCfg(){
+      const raw = localStorage.getItem(STORE_KEY);
+      if(raw){
+        try{ const cfg = JSON.parse(raw); if(cfg.apiBase) state.apiBase = cfg.apiBase; }catch{ }
+      }
+      $('#apiBase').value = state.apiBase;
+    }
+
+    function pushLog(line){
+      const ts = new Date().toLocaleString();
+      const msg = `[${ts}] ${line}`;
+      state.logs.push(msg);
+      localStorage.setItem(LOG_KEY, JSON.stringify(state.logs));
+      renderLogs();
+    }
+    function loadLogs(){
+      const raw = localStorage.getItem(LOG_KEY);
+      if(raw){ try{ state.logs = JSON.parse(raw)||[] }catch{ state.logs=[] }
+      }
+      renderLogs();
+    }
+    function renderLogs(){
+      $('#logBox').textContent = state.logs.join('\n');
+      const el = $('#logBox');
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function toast(text){
+      const t = $('#toast');
+      t.textContent = text; t.style.opacity = 1; t.style.pointerEvents = 'auto';
+      setTimeout(()=>{ t.style.opacity = 0; t.style.pointerEvents='none' }, 1800);
+    }
+
+   async function fetchQR() {
+  try {
+    const res = await fetch(`${state.apiBase}/get-qr`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${state.authToken}` // 🔒 Auth जोड़ दिया
+      }
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    state.ready = !!data.ready;
+    state.qr = data.qr || null;
+
+    renderStatus();
+    renderQR();
+  } catch (err) {
+    state.ready = false;
+    state.qr = null;
+    renderStatus();
+    $('#qrWrap').innerHTML =
+      `<div class='text-center p-6 text-sm text-red-600'>
+        Cannot reach backend (${err.message}).<br>
+        Check API base URL & server authentication.
+      </div>`;
+  }
+}
+
+    function renderStatus(){
+      const badge = $('#statusBadge');
+      if(state.ready){
+        badge.textContent = 'Ready';
+        badge.className = 'px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700';
+      }else{
+        badge.textContent = 'Not Ready';
+        badge.className = 'px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700';
+      }
+    }
+
+    function renderQR(){
+      const box = $('#qrWrap');
+      if(state.ready){
+        box.innerHTML = `<div class='p-6 text-center text-sm text-green-700'>Client is logged in. No QR needed.</div>`;
+        return;
+      }
+      if(state.qr){
+        box.innerHTML = `<img src="${state.qr}" alt="QR" class="w-60 h-60 object-contain"/>`;
+      }else{
+        box.innerHTML = `<div class='p-6 text-center text-sm text-slate-500'>Waiting for QR…</div>`;
+      }
+    }
+
+    async function testConnection(){
+      $('#cfgMsg').textContent = 'Testing…';
+      try{
+        const res = await fetch(`${state.apiBase}/get-qr`);
+        $('#cfgMsg').textContent = res.ok ? '✅ Connected' : `❌ ${res.status}`;
+      }catch(err){
+        $('#cfgMsg').textContent = `❌ ${err.message}`;
+      }
+    }
+
+   async function sendMessage() {
+  const number = $('#waNumber').value.trim();
+  const message = $('#waText').value.trim();
+  if (!number || !message) { 
+    toast('Enter number and message'); 
+    return; 
+  }
+
+  try {
+    const res = await fetch(`${state.apiBase}/send-message`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${state.authToken}` // 🔒 Auth जोड़ दिया
+      
+      },
+      body: JSON.stringify({ number, message })
+    });
+
+    if (!res.ok) { 
+      const e = await res.json().catch(() => ({ error: 'Unknown' })); 
+      throw new Error(e.error || 'Failed'); 
+    }
+
+    const data = await res.json();
+    pushLog(`✅ Sent to ${data.number}: ${data.message}`);
+    $('#waText').value = '';
+    toast('Message sent');
+
+  } catch (err) {
+    pushLog(`❌ Send failed: ${err.message}`);
+    toast('Send failed');
+  }
+}
+
+
+    function startPolling(){
+      if(state.polling) clearInterval(state.polling);
+      state.polling = setInterval(fetchQR, 3000);
+      fetchQR();
+    }
+
+    // Template handling
+    function wireTemplates(){
+      $$('.tpl').forEach(btn=>{
+        btn.addEventListener('click', ()=>{ $('#waText').value = btn.textContent.trim(); })
+      });
+      $('#addTpl').addEventListener('click', ()=>{
+        const v = $('#customTpl').value.trim();
+        if(!v) return;
+        const b = document.createElement('button');
+        b.className='tpl px-3 py-2 bg-slate-200 rounded-lg';
+        b.textContent = v; b.addEventListener('click', ()=>$('#waText').value=v);
+        $('#customTpl').closest('div').previousElementSibling.appendChild(b);
+        $('#customTpl').value='';
+        toast('Template added');
+      });
+    }
+
+    // Wire UI
+    document.addEventListener('DOMContentLoaded', ()=>{
+      loadCfg();
+      loadLogs();
+      startPolling();
+      wireTemplates();
+
+      $('#saveCfg').addEventListener('click', ()=>{
+        state.apiBase = $('#apiBase').value.trim() || state.apiBase;
+        saveCfg(); toast('Saved'); startPolling();
+      });
+      $('#testConn').addEventListener('click', testConnection);
+      $('#sendBtn').addEventListener('click', sendMessage);
+      $('#clearBtn').addEventListener('click', ()=>{ $('#waText').value=''; });
+      $('#copyLogs').addEventListener('click', ()=>{
+        navigator.clipboard.writeText(state.logs.join('\n')).then(()=>toast('Logs copied'));
+      });
+      $('#clearLogs').addEventListener('click', ()=>{
+        state.logs = []; localStorage.removeItem(LOG_KEY); renderLogs();
+      });
+    });
+  </script>
+</body>
+</html>

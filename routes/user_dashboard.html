@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>User Management Dashboard</title>
+
+<style>
+body { font-family: Arial; margin:20px; }
+h2 { margin-bottom: 10px; }
+table { border-collapse: collapse; width: 100%; margin-bottom:10px; }
+th, td { border:1px solid #ccc; padding:8px; text-align:center; }
+th { background:#f0f0f0; }
+button { padding:5px 10px; margin:2px; cursor:pointer; }
+input, select { padding:5px; margin:5px 0; }
+#userModal { display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ccc; padding:20px; width:500px; max-height:80%; overflow:auto; box-shadow:0 0 10px rgba(0,0,0,0.3);}
+#overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4);}
+</style>
+
+ <style>
+    /* Dialog Overlay */
+    .dialog-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    /* Dialog Box */
+    .dialog-box {
+      background: #fff;
+      width: 400px;
+      max-height: 70%;
+      border-radius: 8px;
+      overflow-y: auto;
+      padding: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    /* Close Button */
+    .close-btn {
+      float: right;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      color: red;
+    }
+
+    /* Command List */
+    .command-item {
+      padding: 8px;
+      margin: 5px 0;
+      border-bottom: 1px solid #ccc;
+      font-family: monospace;
+    }
+
+    .dialog-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+  </style>
+
+
+
+</head>
+<body>
+
+<h2>User Management Dashboard</h2>
+
+
+<div id="editModal" style="display:none; position:fixed; top:10%; left:50%; transform:translateX(-50%);
+    background:#fff; border:1px solid #ccc; padding:20px; width:400px; box-shadow:0 0 10px rgba(0,0,0,0.3);">
+    <h3>Edit User</h3>
+    <form id="editForm">
+        <input type="hidden" id="editUserId">
+        <label>Name:</label><br>
+        <input type="text" id="editName"><br>
+        <label>Phone:</label><br>
+        <input type="text" id="editPhone"><br>
+        <label>IMEI1:</label><br>
+        <input type="text" id="editIMEI1"><br>
+        <label>IMEI2:</label><br>
+        <input type="text" id="editIMEI2"><br>
+        <label>Status:</label><br>
+        <select id="editStatus">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="blocked">Blocked</option>
+        </select><br><br>
+        <button type="submit">Save</button>
+        <button type="button" onclick="closeEditModal()">Cancel</button>
+    </form>
+</div>
+<div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4)"></div>
+
+///  DEvuce view 
+
+<div id="userModal">
+    <h3>User Details & Device Control</h3>
+    <div id="userDetail"></div>
+
+
+     <div id="devices"></div>
+
+    <h4>Send Command</h4>
+    <select id="modalCmdAction">
+        <option value="">Select Command</option>
+        <option value="LOCK">LOCK</option>
+        <option value="UNLOCK">UNLOCK</option>
+        <option value="SURRENDER">SURRENDER</option>
+        <option value="AUDIO_MESSAGE">AUDIO_MESSAGE</option>
+        <option value="APP_ICON_ON">APP HIDE</option>
+        <option value="APP_ICON_OFF">APP VISIBLE</option>
+    </select>
+
+    <select id="modalCmdType">
+        <option value="fcm">FCM</option>
+        <option value="ws">WebSocket</option>
+        <option value="mqtt">MQTT</option>
+    </select>
+
+    <button id="user_mode" onclick="sendDeviceCommand()">Send Command</button>
+    <div id="modalCmdResponse" style="margin-top:5px;color:green;"></div>
+
+    <button onclick="closeModal()">Close</button>
+</div>
+
+
+<!-- Overlay -->
+<div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+  background:rgba(0,0,0,0.6); z-index:999;">
+</div>
+
+<!-- Modal -->
+<div id="statusDialog" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+  width:60%; max-width:600px; height:70%; background:white; border-radius:10px; box-shadow:0px 5px 15px rgba(0,0,0,0.4);
+  overflow:auto; padding:10px; z-index:1000;">
+  
+  <!-- Close Button Top Right -->
+  <button onclick="closeDialog()" 
+    style="position:absolute; top:8px; right:8px; background:red; color:white; border:none; 
+           border-radius:4px; padding:5px 10px; cursor:pointer;">
+    ✕
+  </button>
+
+  
+  <pre id="statusList" style="white-space: pre-wrap; font-family: monospace; margin-top:20px;"></pre>
+</div>
+
+
+
+
+
+
+
+<h3>Import / Export Users</h3>
+<input type="file" id="importFile">
+<button onclick="importUsers()">Import</button>
+<button onclick="exportUsers()">Export CSV</button>
+<div id="importMsg" style="margin-top:5px;color:green;"></div>
+
+<h3>Search Users</h3>
+<input type="text" id="searchInput" placeholder="Search by Name, Phone, IMEI..." oninput="renderTable()">
+
+<h3>Users</h3>
+<table id="usersTable">
+<tr>
+<th>#</th>
+<th>Name</th>
+<th>Phone</th>
+<th>IMEI1</th>
+<th>IMEI2</th>
+<th>DOC_ID</th>
+<th>Actions</th>
+</tr>
+</table>
+<div>
+<button id="prevPage">Previous</button>
+<span id="pageInfo">Page 1</span>
+<button id="nextPage">Next</button>
+</div>
+
+<!-- User Detail Modal -->
+<div id="overlay"></div>
+<div id="userModal">
+<h3>User Details</h3>
+<div id="userDetail"></div>
+<button onclick="closeModal()">Close</button>
+</div>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+
+
+
+const SERVER_URL = "http://localhost:3000"; // change if needed
+let users = [];
+let currentPage = 1;
+const pageSize = 10;
+
+// Fetch users initially
+async function fetchUsers(){
+    try {
+        const res = await fetch(SERVER_URL + "/user/");
+        const data = await res.json();
+        users = data.users || [];
+        renderTable();
+    } catch(err){
+        console.error(err);
+    }
+}
+
+// Render table with pagination & search
+function renderTable(){
+    const table = document.getElementById("usersTable");
+    const search = document.getElementById("searchInput").value.toLowerCase();
+    const filtered = users.filter(u=> 
+        (u.user_name && u.user_name.toLowerCase().includes(search)) ||
+        (u.user_phone && u.user_phone.includes(search)) ||
+        (u.imei1 && u.imei1.includes(search)) ||
+        (u.imei2 && u.imei2.includes(search))
+    );
+
+    const start = (currentPage-1)*pageSize;
+    const pageUsers = filtered.slice(start, start+pageSize);
+
+    table.innerHTML = `<tr>
+        <th>#</th><th>Name</th><th>Phone</th><th>IMEI1</th><th>IMEI2</th><th>DOC_ID</th><th>Actions</th>
+    </tr>`;
+
+    pageUsers.forEach((u,i)=>{
+        const row = table.insertRow();
+        row.insertCell(0).innerText = start+i+1;
+        row.insertCell(1).innerText = u.user_name;
+        row.insertCell(2).innerText = u.user_phone;
+        row.insertCell(3).innerText = u.imei1;
+        row.insertCell(4).innerText = u.imei2;
+        row.insertCell(5).innerText = u.doc_id;
+       row.insertCell(6).innerHTML = `
+    <button onclick='viewUser("${u.userId}")'>View</button>
+       <button onclick='showStatus("${u.imei1}")'>Logs.</button>
+    <button onclick='openEditModal("${u.userId}")'>Edit</button>
+  
+    <button onclick='deleteUser("${u.userId}")'>Delete</button>
+`;
+
+    });
+
+    document.getElementById("pageInfo").innerText = `Page ${currentPage} of ${Math.ceil(filtered.length/pageSize)}`;
+}
+
+// Pagination
+document.getElementById("prevPage").addEventListener("click", ()=>{
+    if(currentPage>1){ currentPage--; renderTable();}
+});
+document.getElementById("nextPage").addEventListener("click", ()=>{
+    const maxPage = Math.ceil(users.length/pageSize);
+    if(currentPage<maxPage){ currentPage++; renderTable();}
+});
+
+
+function closeModal(){
+    document.getElementById("overlay").style.display="none";
+    document.getElementById("userModal").style.display="none";
+}
+
+function openEditModal(userId){
+    const user = users.find(u=>u.userId===userId);
+    if(!user) return alert("User not found");
+
+    document.getElementById("editUserId").value = user.userId;
+    document.getElementById("editName").value = user.user_name;
+    document.getElementById("editPhone").value = user.user_phone;
+    document.getElementById("editIMEI1").value = user.imei1;
+    document.getElementById("editIMEI2").value = user.imei2;
+    document.getElementById("editStatus").value = user.status;
+
+   // document.getElementById("overlay").style.display = "block";
+    document.getElementById("editModal").style.display = "block";
+}
+
+function closeEditModal(){
+    document.getElementById("overlay").style.display = "none";
+    document.getElementById("editModal").style.display = "none";
+}
+
+// Handle form submit
+document.getElementById("editForm").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const userId = document.getElementById("editUserId").value;
+    const user_name = document.getElementById("editName").value;
+    const user_phone = document.getElementById("editPhone").value;
+    const imei1 = document.getElementById("editIMEI1").value;
+    const imei2 = document.getElementById("editIMEI2").value;
+    const status = document.getElementById("editStatus").value;
+
+    try{
+        const res = await fetch(`${SERVER_URL}/user/${userId}/update`, {
+            method:"POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({ user_name, user_phone, imei1, imei2, status })
+        });
+        const data = await res.json();
+        alert(data.message || "User updated!");
+        closeEditModal();
+        fetchUsers();
+    } catch(err){ console.error(err); }
+});
+
+async function deleteUser(userId){
+    if(!confirm("Are you sure you want to delete this user?")) return;
+
+    try{
+        const res = await fetch(`${SERVER_URL}/user/${userId}/delete`, { method:"POST" });
+        const data = await res.json();
+        alert(data.message || "User deleted!");
+        fetchUsers(); // refresh table
+    } catch(err){ console.error(err);}
+}
+
+
+
+
+
+
+// Import Users
+async function importUsers(){
+    const fileInput = document.getElementById("importFile");
+    if(fileInput.files.length===0) return alert("Select a file!");
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    try{
+        const res = await fetch(SERVER_URL+"/user/import",{method:"POST",body:formData});
+        const data = await res.json();
+        document.getElementById("importMsg").innerText = data.message || "Imported!";
+        fetchUsers();
+    } catch(err){ console.error(err);}
+}
+
+// Export Users
+function exportUsers(){
+    fetch(SERVER_URL+"/user/export")
+    .then(res=>res.blob())
+    .then(blob=>{
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "users.csv";
+        a.click();
+    });
+}
+
+
+async function viewUser(userId){
+    const user = users.find(u=>u.userId===userId);
+    if(!user) return alert("User not found");
+
+    let commands = [];
+    try{
+        const res = await fetch(`${SERVER_URL}/user/${userId}/commands`);
+        const data = await res.json();
+        commands = data.commands || [];
+    } catch(err){ console.error(err); }
+
+    const detailDiv = document.getElementById("userDetail");
+
+
+
+
+    detailDiv.dataset.userId = user.userId; // store for command
+
+checkStatus(user.imei1);
+
+
+    detailDiv.innerHTML = `
+        <b>Name:</b> ${user.user_name}<br>
+        <b>Phone:</b> ${user.user_phone}<br>
+        <b>IMEI1:</b> ${user.imei1}<br>
+        <b>IMEI2:</b> ${user.imei2}<br>
+        <b>DOC_ID:</b> ${user.doc_id}<br>
+        <b>Android ID:</b> ${user.android_id || "-"}<br>
+        <b>Device Info:</b> ${JSON.stringify(user.device_info)}<br>
+        <b>Status:</b> ${user.status}<br>
+        <b>Notes:</b> ${user.notes || "-"}<br>
+        <h4>Command History:</h4>
+        ${commands.map(c=>`<div>[${c.createdAt}] ${c.action} - ${c.status}</div>`).join('')}
+    `;
+    document.getElementById("overlay").style.display="block";
+    document.getElementById("userModal").style.display="block";
+}
+
+
+async function sendDeviceCommand() {
+    const action = document.getElementById("modalCmdAction").value;
+    const type = document.getElementById("modalCmdType").value;
+    const userId = document.getElementById("userDetail").dataset.userId;
+    const user = users.find(u => u.userId === userId);
+
+    if(!user) return alert("User not found");
+    if(!action || !type) return alert("Select command and type");
+
+    try {
+        if(type === "fcm") {
+            await sendFcmCommandToUser(user, action);
+
+        } else if(type === "ws") {
+            // WebSocket send
+           sendwsCommandToUser(user, action);
+
+        } else if(type === "mqtt") {
+            // MQTT send via server API
+           sendMqttCommandToUser(user, action);
+        }
+    } catch(err){
+        console.error(err);
+        document.getElementById("modalCmdResponse").innerText = "Failed to send command ❌";
+    }
+}
+
+// FCM command function
+async function sendFcmCommandToUser(user, action) {
+    const AUTH_TOKEN = "bNzxay2Pvqh831iEcDviOfdv8hv4H2BY"; // server side token
+    try {
+        const res = await fetch(`${SERVER_URL}/send-command`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${AUTH_TOKEN}`
+            },
+            body: JSON.stringify({
+                command:action,
+                fcm_token: user.imei1,
+                topic: user.imei1,
+                send_type: false
+            })
+        });
+        const data = await res.json();
+        document.getElementById("modalCmdResponse").innerText = data.success 
+            ? "FCM Command sent ✅" 
+            : "Error: " + data.error + "IMEI1 :"+user.imei1;
+
+    } catch(err) {
+        console.error(err);
+        document.getElementById("modalCmdResponse").innerText = "Failed to send FCM command ❌";
+    }
+}
+
+
+async function sendwsCommandToUser(user, action) {
+    if (!user || !user.imei1 || !action) return alert("User or action missing");
+
+    try {
+        const res = await fetch(`${SERVER_URL}/send?imei=${user.imei1}&action=${action}`);
+        const data = await res.json();
+
+        document.getElementById("modalCmdResponse").innerText = data.success
+            ? "WS Command sent/stored ✅"
+            : "Error: " + data.message;
+    } catch (err) {
+        console.error(err);
+        document.getElementById("modalCmdResponse").innerText = "Failed to send WS command ❌";
+    }
+}
+
+async function sendMqttCommandToUser(user, action) {
+    if(!user || !user.imei1 || !action) return alert("User or action missing");
+
+    const AUTH_TOKEN = "bNzxay2Pvqh831iEcDviOfdv8hv4H2BY"; // same token
+
+    try {
+        const res = await fetch(`${SERVER_URL}/sendCommandmqtt`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${AUTH_TOKEN}`
+            },
+            body: JSON.stringify({
+                imei: user.imei1,
+                command: action
+            })
+        });
+
+        const data = await res.json();
+        document.getElementById("modalCmdResponse").innerText = data.success 
+            ? "MQTT Command sent ✅" 
+            : "Error: " + (data.error || "Unknown error");
+
+    } catch(err) {
+        console.error(err);
+        document.getElementById("modalCmdResponse").innerText = "Failed to send MQTT command ❌";
+    }
+}
+
+async function getDeviceStatus(imei) {
+const AUTH_TOKEN = "bNzxay2Pvqh831iEcDviOfdv8hv4H2BY"; // same token
+
+      try {
+        const res = await fetch(`http://localhost:3000/onlineDevice/${imei}`, {
+          headers: {
+            "Authorization": `Bearer ${AUTH_TOKEN}`
+          }
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch");
+        }
+
+        const data = await res.json();
+        return data;
+
+      } catch (err) {
+        console.error(err);
+        return { imei, status: "ERROR" };
+      }
+    }
+
+    // Main function
+    async function checkStatus(imei) {
+      
+      if (!imei) {
+        alert("Please enter IMEI");
+        return;
+      }
+
+      const data = await getDeviceStatus(imei);
+
+   let statusHtml = "";
+if (data.status === "ONLINE") {
+  statusHtml = `<p>IMEI: ${data.imei} <span style="color: green; font-weight: bold;">${data.status}</span></p>`;
+} else if (data.status === "OFFLINE") {
+  statusHtml = `<p>IMEI: ${data.imei} <span style="color: red; font-weight: bold;">${data.status}</span></p>`;
+} else {
+  statusHtml = `<p>IMEI: ${data.imei} <span style="color: gray;">${data.status}</span></p>`;
+}
+
+
+      document.getElementById("devices").innerHTML = statusHtml;
+    }
+
+
+
+
+
+
+
+
+async function showStatus(imei) {
+  const dialog = document.getElementById("statusDialog");
+  const statusList = document.getElementById("statusList");
+  statusList.innerHTML = "Loading...";
+
+  dialog.style.display = "flex"; // Show Dialog
+
+  try {
+    const token = "bNzxay2Pvqh831iEcDviOfdv8hv4H2BY"; // यहां अपना auth token लगाएं
+
+    const res = await fetch(`${SERVER_URL}/statuss/${imei}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`   // Auth header
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch");
+    }
+
+    const data = await res.json();
+
+    // Reverse order (recent/latest first)
+    const commands = data.commands.reverse();
+
+    // Show all commands (pretty JSON format)
+    statusList.innerHTML = commands.map(cmd =>
+      `<pre class="command-item">${JSON.stringify(cmd, null, 2)}</pre>`
+    ).join("");
+
+  } catch (err) {
+    statusList.innerHTML = `<p style="color:red;">Error loading status</p>`;
+  }
+}
+
+// Close Dialog
+function closeDialog() {
+  document.getElementById("statusDialog").style.display = "none";
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Initial load
+fetchUsers();
+
+</script>
+</body>
+</html>

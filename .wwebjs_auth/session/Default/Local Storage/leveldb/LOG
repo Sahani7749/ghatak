@@ -1,0 +1,4 @@
+2025/08/31-23:09:24.622 2da0 Creating DB C:\Users\SURYA COMMUNICATION\Documents\server_websocket\.wwebjs_auth\session\Default\Local Storage\leveldb since it was missing.
+2025/08/31-23:09:25.168 2da0 Reusing MANIFEST C:\Users\SURYA COMMUNICATION\Documents\server_websocket\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
+2025/08/31-23:09:25.168 2da0 Recovering log #3
+2025/08/31-23:09:25.169 2da0 Reusing old log C:\Users\SURYA COMMUNICATION\Documents\server_websocket\.wwebjs_auth\session\Default\Local Storage\leveldb/000003.log 

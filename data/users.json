@@ -1,0 +1,94 @@
+[
+  {
+    "userId": "655b6daa-76ee-45b4-b153-e06f0de4407d",
+    "user_name": "Chandrakanta Sahani",
+    "user_phone": "1234567890",
+    "imei1": "7749070860",
+    "imei2": "987654321098765",
+    "doc_id": "DOC12345",
+    "android_id": "ANDROID98765",
+    "device_info": {
+      "model": "Samsung Galaxy A50",
+      "os": "Android 12"
+    },
+    "notes": "First test user",
+    "status": "active",
+    "createdAt": "2025-08-21T08:57:11.470Z"
+  },
+  {
+    "userId": "42451f5b-600b-4015-af7c-90c8879d8f1b",
+    "user_name": "Chandrakanta demo",
+    "user_phone": "7749070860",
+    "imei1": "c46bc8f8a0ee31fe",
+    "imei2": "987654321098765",
+    "doc_id": "DOC12345",
+    "android_id": "ANDROID98765",
+    "device_info": {
+      "model": "Samsung Galaxy A50",
+      "os": "Android 12"
+    },
+    "notes": "First test user",
+    "status": "active",
+    "createdAt": "2025-08-21T09:58:33.536Z"
+  },
+  {
+    "userId": "09626027-c55a-40fb-806c-047537952ed7",
+    "user_name": "Chandrakanta Sahani",
+    "user_phone": "7749070860",
+    "imei1": "123456789012345",
+    "imei2": "987654321098765",
+    "doc_id": "DOC12345",
+    "android_id": "ANDROID98765",
+    "device_info": {
+      "model": "Samsung Galaxy A50",
+      "os": "Android 12"
+    },
+    "notes": "First test user",
+    "status": "active",
+    "createdAt": "2025-08-24T06:18:44.844Z"
+  },
+  {
+    "userId": "689f0bc1-66ae-4644-871d-66e2d3c3728d",
+    "user_name": "debj",
+    "user_phone": "8249885868",
+    "imei1": "860644053734632",
+    "imei2": "860644053734624",
+    "doc_id": "PihlesrOTzVPEPcESFh7",
+    "android_id": "c46bc8f8a0ee31fe",
+    "device_info": {
+      "Version_code": 1,
+      "os_version": "13",
+      "sdk_version": 33,
+      "model": "RMX3193",
+      "ip_address": "192.168.31.248",
+      "Retelar_doc_id": "7RjVANOv3EGJ0wbjv5Ca",
+      "brand": "realme",
+      "Version_name": "1.0"
+    },
+    "notes": "Retailer : chandrakanta sahani\n Store Name : Surya Communication",
+    "status": "active",
+    "createdAt": "2025-08-24T06:54:10.618Z"
+  },
+  {
+    "userId": "ea3912fd-4564-4d05-89b1-b098c58f45b8",
+    "user_name": "debj",
+    "user_phone": "8249885868",
+    "imei1": "860644053734632",
+    "imei2": "860644053734624",
+    "doc_id": "PihlesrOTzVPEPcESFh7",
+    "android_id": "c46bc8f8a0ee31fe",
+    "device_info": {
+      "Version_code": 1,
+      "os_version": "13",
+      "sdk_version": 33,
+      "model": "RMX3193",
+      "ip_address": "192.168.31.248",
+      "Retelar_doc_id": "7RjVANOv3EGJ0wbjv5Ca",
+      "brand": "realme",
+      "Version_name": "1.0"
+    },
+    "notes": "Retailer : chandrakanta sahani\n Store Name : Surya Communication",
+    "status": "active",
+    "createdAt": "2025-09-05T16:35:58.128Z"
+  }
+]

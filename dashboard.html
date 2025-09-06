@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EMI Locking Admin Dashboard</title>
+    <style>
+        body { font-family: Arial; margin:20px; }
+        table { border-collapse: collapse; width: 100%; margin-bottom:20px; }
+        th, td { border:1px solid #ccc; padding:8px; text-align:center; }
+        th { background: #f0f0f0; }
+        button { padding:5px 10px; margin:2px; cursor:pointer; }
+        #cmdLog { height:150px; overflow:auto; border:1px solid #ccc; padding:5px; margin-bottom:20px; }
+        .executed { background-color: #d4edda; }
+        .pending { background-color: #fff3cd; }
+        .failed { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h2>EMI Locking Admin Dashboard</h2>
+
+    <button id="wsBtn" onclick="toggleWS()">WebSocket: --</button>
+<button id="mqttBtn" onclick="toggleMQTT()">MQTT: --</button>
+
+    <h3>Server Health</h3>
+    <div id="health"></div>
+
+  
+
+<h3>Send FCM Command</h3>
+<select id="cmdInput">
+    <option value="">Select Command</option>
+    <option value="LOCK">LOCK</option>
+    <option value="UNLOCK">UNLOCK</option>
+</select>
+<input type="text" id="cmdFcmToken" placeholder="FCM Token (leave blank if using topic)">
+<input type="text" id="cmdTopic" placeholder="Topic (optional)">
+<select id="cmdSendType">
+    <option value="token">Send to Single Device</option>
+    <option value="topic">Send to Topic</option>
+</select>
+<button onclick="sendFcmCommand()">Send Command</button>
+<div id="cmdResponse" style="margin-top:10px; color:green;"></div>
+
+ <h3>Connected Clients</h3>
+<input type="text" id="searchClient" oninput="filterClients()" placeholder="Search by IMEI, Name, Model">
+
+<table id="clientsTable">
+    <tr>
+        <th>IMEI</th>
+        <th>Name</th>
+        <th>Model</th>
+        <th>Android</th>
+        <th>Battery</th>
+        <th>Last Seen</th>
+        <th>UA</th>
+        <th>Status</th>
+        <th>Last Command</th>
+        <th>Action</th>
+    </tr>
+</table>
+
+<div>
+    <button id="prevClientPage">Previous</button>
+    <span id="clientPageInfo">Page 1</span>
+    <button id="nextClientPage">Next</button>
+</div>
+
+
+
+    <h3>Send Command</h3>
+    <input type="text" id="imei" placeholder="Device IMEI">
+    <select id="action">
+        <option value="LOCK">LOCK</option>
+        <option value="UNLOCK">UNLOCK</option>
+    </select>
+    <button onclick="sendCommand()">Send</button>
+
+  <h3>Pending Commands</h3>
+<input type="text" id="searchBox" placeholder="Search IMEI or Action" style="margin-bottom:10px;">
+<table id="pendingTable">
+    <tr>
+        <th>IMEI</th>
+        <th>Action</th>
+        <th>CreatedAt</th>
+        <th>Attempts</th>
+        <th>Status</th>
+    </tr>
+</table>
+<div>
+    <button id="prevPage">Previous</button>
+    <span id="pageInfo">Page 1</span>
+    <button id="nextPage">Next</button>
+</div>
+
+    <h3>Command Log</h3>
+    <div id="cmdLog"></div>
+
+    <h3>Export Data</h3>
+    <button onclick="exportData()">Export Commands CSV</button>
+
+    <script>
+        const SERVER_URL = "http://192.168.31.4:3000";
+        let allClients = [];
+        let allPending = [];
+
+let currentPage = 1;
+const pageSize = 10;
+
+let currentClientPage = 1;
+const clientPageSize = 10; // एक page में 10 clients दिखेंगे
+
+
+        async function fetchHealth(){
+            const res = await fetch(SERVER_URL + "/health");
+            const data = await res.json();
+            document.getElementById("health").innerHTML = `
+                <b>Server Time:</b> ${data.serverTime} <br>
+                <b>HTTP Server:</b> ${data.httpServer} <br>
+                <b>WebSocket Server:</b> ${data.websocketServer} <br>
+                <b>Active Clients:</b> ${data.activeClients} <br>
+                <b>Pending Commands:</b> ${data.pendingCommands} <br>
+            `;
+        }
+
+       async function fetchClients(){
+    try {
+        const res = await fetch(SERVER_URL + "/clientsInfo"); // new API returning detailed info
+        const data = await res.json();
+        allClients = data.connected || [];
+        renderClients(allClients);
+    } catch(err){
+        console.error("Failed to fetch clients:", err);
+    }
+}
+
+
+
+function renderClients(clients){
+    const table = document.getElementById("clientsTable");
+    table.innerHTML = `
+        <tr>
+            <th>#</th>
+            <th>IMEI</th>
+            <th>Name</th>
+            <th>Model</th>
+            <th>Android</th>
+            <th>Battery</th>
+            <th>Last Seen</th>
+            <th>User Agent</th>
+            <th>Status</th>
+            <th>Last Command</th>
+            <th>Action</th>
+        </tr>
+    `;
+
+    // Pagination logic
+    const start = (currentClientPage - 1) * clientPageSize;
+    const pageClients = clients.slice(start, start + clientPageSize);
+
+    pageClients.forEach((client, index)=>{
+        const row = table.insertRow();
+        row.insertCell(0).innerText = start + index + 1;
+        row.insertCell(1).innerText = client.imei || "-";
+        row.insertCell(2).innerText = client.name || "-";
+        row.insertCell(3).innerText = client.model || "-";
+        row.insertCell(4).innerText = client.android || "-";
+        row.insertCell(5).innerText = client.battery || "-";
+        row.insertCell(6).innerText = client.lastSeen || "-";
+        row.insertCell(7).innerText = client.ua || "-";
+        row.insertCell(8).innerText = client.active ? "Online" : "Offline";
+        row.insertCell(9).innerText = client.lastCommand ? `${client.lastCommand.action} (${client.lastCommand.status})` : "-";
+        row.insertCell(10).innerHTML = `
+            <button onclick="sendCommand('${client.imei}','LOCK')">LOCK</button>
+            <button onclick="sendCommand('${client.imei}','UNLOCK')">UNLOCK</button>
+            <button onclick="openTerminal('${client.imei}')">Terminal</button>
+        `;
+    });
+
+    document.getElementById("clientPageInfo").innerText = `Page ${currentClientPage} of ${Math.ceil(clients.length / clientPageSize)}`;
+}
+
+// Search function
+function filterClients(){
+    const val = document.getElementById("searchClient").value.toLowerCase();
+    const filtered = allClients.filter(c => 
+        (c.imei && c.imei.includes(val)) || 
+        (c.name && c.name.toLowerCase().includes(val)) || 
+        (c.model && c.model.toLowerCase().includes(val))
+    );
+    currentClientPage = 1; // search पर page reset करें
+    renderClients(filtered);
+}
+
+
+// Open terminal / command response modal
+function openTerminal(imei){
+    const terminal = prompt(`Send command to ${imei}:`);
+    if(terminal){
+        sendCommand(imei, terminal); // reuse existing sendCommand function
+        alert("Command sent. Response will appear in last command column.");
+    }
+}
+
+
+
+async function fetchPending() {
+    try {
+        const res = await fetch(SERVER_URL + "/fetchAllPending");
+        const data = await res.json();
+        allPending = data.pending || [];
+
+        // Sort descending by createdAt (recent first)
+        allPending.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        currentPage = 1;
+        renderTable();
+    } catch (err) {
+        console.error("Failed to fetch pending commands:", err);
+    }
+}
+
+
+function renderTable() {
+    const table = document.getElementById("pendingTable");
+    const search = document.getElementById("searchBox").value.toLowerCase();
+
+    table.innerHTML = "<tr><th>IMEI</th><th>Action</th><th>CreatedAt</th><th>Attempts</th><th>Status</th></tr>";
+
+    const filtered = allPending.filter(cmd => 
+        cmd.imei.toLowerCase().includes(search) ||
+        cmd.action.toLowerCase().includes(search)
+    );
+
+    const start = (currentPage - 1) * pageSize;
+    const pageData = filtered.slice(start, start + pageSize);
+
+    pageData.forEach(cmd => {
+        const row = table.insertRow();
+        row.className = cmd.status;
+        row.insertCell(0).innerText = cmd.imei;
+        row.insertCell(1).innerText = cmd.action;
+        row.insertCell(2).innerText = cmd.createdAt;
+        row.insertCell(3).innerText = cmd.attempts;
+        row.insertCell(4).innerText = cmd.status;
+    });
+
+    document.getElementById("pageInfo").innerText = `Page ${currentPage} of ${Math.ceil(filtered.length / pageSize)}`;
+}
+
+// Search box event
+document.getElementById("searchBox").addEventListener("input", ()=>{
+    currentPage = 1;
+    renderTable();
+});
+
+// Pagination buttons
+document.getElementById("prevPage").addEventListener("click", ()=>{
+    if(currentPage > 1){ currentPage--; renderTable(); }
+});
+document.getElementById("nextPage").addEventListener("click", ()=>{
+    const maxPage = Math.ceil(allPending.filter(cmd => 
+        cmd.imei.toLowerCase().includes(document.getElementById("searchBox").value.toLowerCase()) ||
+        cmd.action.toLowerCase().includes(document.getElementById("searchBox").value.toLowerCase())
+    ).length / pageSize);
+    if(currentPage < maxPage){ currentPage++; renderTable(); }
+});
+
+// Initial fetch
+fetchPending();
+
+
+
+
+
+
+
+        
+
+
+
+      
+
+        async function sendCommand(imeiInput, actionInput){
+            const imei = imeiInput || document.getElementById("imei").value;
+            const action = actionInput || document.getElementById("action").value;
+            if(!imei) return alert("Enter IMEI");
+            const res = await fetch(`${SERVER_URL}/send?imei=${imei}&action=${action}`);
+            const data = await res.json();
+            document.getElementById("cmdLog").innerHTML += `[${new Date().toLocaleTimeString()}] ${data.message}<br>`;
+            alert(data.message);
+        }
+
+        async function refreshDashboard(){
+            await fetchHealth();
+            await fetchClients();
+            await fetchPending();
+            setTimeout(refreshDashboard, 5000);
+        }
+
+        function exportData(){
+            fetch(SERVER_URL + "/fetchPending?imei=")
+            .then(res => res.json())
+            .then(data=>{
+                let csv = "IMEI,Action,CreatedAt,Attempts,Status\n";
+                data.pending?.forEach(cmd=>{
+                    csv += `${cmd.imei},${cmd.action},${cmd.createdAt},${cmd.attempts},${cmd.status}\n`;
+                });
+                const blob = new Blob([csv], { type: "text/csv" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "commands.csv";
+                a.click();
+            });
+        }
+
+
+
+async function sendFcmCommand() {
+    const command = document.getElementById("cmdInput").value;
+    const fcmToken = document.getElementById("cmdFcmToken").value;
+    const topic = document.getElementById("cmdTopic").value;
+    const sendType = document.getElementById("cmdSendType").value === "token";
+
+    if (!command) {
+        alert("Please enter a command!");
+        return;
+    }
+    if (sendType && !fcmToken) {
+        alert("Please enter FCM token for single device!");
+        return;
+    }
+    if (!sendType && !topic) {
+        alert("Please enter topic!");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${SERVER_URL}/send-command`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer bNzxay2Pvqh831iEcDviOfdv8hv4H2BY"
+            },
+            body: JSON.stringify({
+                command: command,
+                fcm_token: fcmToken,
+                topic: topic,
+                send_type: sendType
+            })
+        });
+
+        const data = await res.json();
+        document.getElementById("cmdResponse").innerText = 
+            data.success ? "Command sent successfully ✅" : "Error: " + data.error;
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById("cmdResponse").innerText = "Failed to send command ❌";
+    }
+}
+
+
+
+
+//   Websocket and Mqtt Server On/Off 
+
+
+
+// Server.js के सबसे ऊपर या जहां बाकी global variables हैं
+let wsServer = null;      // WebSocket server instance
+let wsEnabled = false;    // WebSocket ON/OFF status
+
+// Fetch status initially and update buttons
+const AUTH_TOKEN = "bNzxay2Pvqh831iEcDviOfdv8hv4H2BY";
+
+async function fetchStatus(){
+    try{
+        const res = await fetch(`${SERVER_URL}/status`, {
+            headers: {
+                "Authorization": `Bearer ${AUTH_TOKEN}`
+            }
+        });
+        const data = await res.json();
+        wsState = data.ws;
+        mqttState = data.mqtt;
+        updateButtons();
+    } catch(err){
+        console.error(err);
+    }
+}
+
+
+function updateButtons(){
+    document.getElementById("wsBtn").innerText = "WebSocket: " + (wsState ? "ON ✅" : "OFF ❌");
+    document.getElementById("mqttBtn").innerText = "MQTT: " + (mqttState ? "ON ✅" : "OFF ❌");
+}
+
+// Toggle WS
+async function toggleWS(){
+    const action = wsState ? 'off' : 'on';
+    try{
+        const res = await fetch(`${SERVER_URL}/ws/${action}`, {
+            method: 'POST',
+            headers: {
+                "Authorization": `Bearer ${AUTH_TOKEN}`,
+                "Content-Type": "application/json"
+            }
+        });
+        const data = await res.json();
+        wsState = data.ws;
+        updateButtons();
+        alert(data.message);
+    } catch(err){
+        console.error(err);
+    }
+}
+// Toggle MQTT
+async function toggleMQTT(){
+    const action = mqttState ? 'off' : 'on';
+    try{
+        const res = await fetch(`${SERVER_URL}/mqtt/${action}`, {
+            method: 'POST',
+            headers: {
+                "Authorization": `Bearer ${AUTH_TOKEN}`,
+                "Content-Type": "application/json"
+            }
+        });
+        const data = await res.json();
+        mqttState = data.mqtt;
+        updateButtons();
+        alert(data.message);
+    } catch(err){
+        console.error(err);
+    }
+}
+
+
+
+
+
+
+// Initial load
+fetchStatus();
+
+
+
+
+
+
+
+
+
+
+
+        refreshDashboard();
+    </script>
+</body>
+</html>
