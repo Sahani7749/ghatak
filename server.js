@@ -1,4 +1,5 @@
 // server.js
+require("dotenv").config();
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
@@ -7,7 +8,8 @@ const cors = require('cors');
 const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
 const admin = require("firebase-admin");
-require("dotenv").config();
+
+const puppeteer = require("puppeteer-core");
 
 //   MQTT Line Code 
 
@@ -145,7 +147,16 @@ admin.initializeApp({
 
 
 
-
+(async () => {
+  const browser = await puppeteer.launch({
+    executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", // Windows path
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+  });
+  const page = await browser.newPage();
+  await page.goto("https://google.com");
+  console.log(await page.title());
+  await browser.close();
+})();
 
 
 
